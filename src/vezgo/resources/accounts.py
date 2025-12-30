@@ -31,6 +31,13 @@ class Accounts(BaseResource):
         # Get a specific account
         account = user.accounts.get_one("account_id")
 
+        # Add a new account (Direct API - Enterprise only)
+        account = user.accounts.add(
+            provider="bitcoin",
+            credentials={"address": "bc1q..."},
+            name="My Bitcoin Wallet"
+        )
+
         # Sync an account
         user.accounts.sync("account_id")
 
@@ -128,6 +135,91 @@ class Accounts(BaseResource):
             raise VezgoValidationError("Please provide a valid Vezgo account ID.")
 
         return self._post(f"/accounts/{account_id}/sync", json={}, authenticated=True)
+
+    def add(
+        self,
+        provider: str,
+        credentials: Dict[str, Any],
+        name: Optional[str] = None,
+        sync_transactions: Optional[bool] = None,
+        sync_nfts: Optional[bool] = None,
+        daily_sync: Optional[bool] = None,
+    ) -> Dict[str, Any]:
+        """
+        Add a new account for the user.
+
+        This endpoint is for enterprise customers using direct API integration.
+        If you are integrating with the Connect widget, this endpoint is not applicable.
+
+        Note: Adding an account will trigger an asynchronous first sync task.
+        If the account returns a login failed on the first sync, it will be
+        automatically removed to minimize abandoned connections.
+
+        Args:
+            provider: The provider name (e.g., "coinbase", "binance", "bitcoin").
+                     Get available providers from `vezgo.providers.get_list()`.
+            credentials: Credentials needed for connecting to the provider.
+                        The credentials object varies by provider. Check
+                        `provider.credentials` for the required fields.
+                        Examples:
+                        - For OAuth providers: {"code": "auth_code_from_oauth"}
+                        - For wallet providers: {"address": "0x123..."}
+                        - For API key providers: {"apiKey": "...", "apiSecret": "..."}
+            name: Optional account name.
+            sync_transactions: Whether to sync transactions (defaults to True).
+                              Only takes effect if your plan supports this feature.
+            sync_nfts: Whether to sync NFTs.
+                      Only takes effect if your plan supports this feature.
+            daily_sync: Whether to enable daily automatic sync.
+
+        Returns:
+            The created account object.
+
+        Raises:
+            VezgoValidationError: If required parameters are invalid.
+            VezgoAPIError: If the API request fails.
+
+        Example:
+            ```python
+            # Add a Bitcoin wallet by address
+            account = user.accounts.add(
+                provider="bitcoin",
+                credentials={"address": "bc1q..."},
+                name="My Bitcoin Wallet"
+            )
+            print(f"Account created: {account['id']}")
+
+            # Add an exchange account with API keys
+            account = user.accounts.add(
+                provider="binance",
+                credentials={
+                    "apiKey": "your_api_key",
+                    "apiSecret": "your_api_secret"
+                },
+                sync_transactions=True
+            )
+            ```
+        """
+        if not provider or not isinstance(provider, str):
+            raise VezgoValidationError("Please provide a valid provider name.")
+        if not credentials or not isinstance(credentials, dict):
+            raise VezgoValidationError("Please provide valid credentials as a dictionary.")
+
+        payload: Dict[str, Any] = {
+            "provider": provider,
+            "credentials": credentials,
+        }
+
+        if name is not None:
+            payload["name"] = name
+        if sync_transactions is not None:
+            payload["sync_transactions"] = sync_transactions
+        if sync_nfts is not None:
+            payload["sync_nfts"] = sync_nfts
+        if daily_sync is not None:
+            payload["daily_sync"] = daily_sync
+
+        return self._post("/accounts", json=payload, authenticated=True)
 
     def remove(self, account_id: str) -> None:
         """

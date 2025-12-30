@@ -131,6 +131,50 @@ for account in accounts:
 account = user.accounts.get_one("603522490d2b02001233a5d6")
 ```
 
+#### Add an Account (Direct API - Enterprise Only)
+
+Add accounts directly via API without the Connect widget. This is useful for wallet addresses and API key integrations.
+
+> **Note:** This endpoint requires Enterprise access. Contact [Vezgo](https://vezgo.com) for more information.
+
+```python
+# Add a Bitcoin wallet by address
+account = user.accounts.add(
+    provider="bitcoin",
+    credentials={"address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"},
+    name="My Bitcoin Wallet"
+)
+print(f"Account created: {account['id']}")
+
+# Add an Ethereum wallet
+account = user.accounts.add(
+    provider="ethereum",
+    credentials={"wallet": "0x742d35Cc6634C0532925a3b844Bc9e7595f..."},
+    name="My ETH Wallet",
+    sync_transactions=True,
+    sync_nfts=True
+)
+
+# Add an exchange with API keys
+account = user.accounts.add(
+    provider="binance",
+    credentials={
+        "apiKey": "your_api_key",
+        "apiSecret": "your_api_secret"
+    },
+    sync_transactions=True,
+    daily_sync=True
+)
+```
+
+Parameters:
+- `provider` (required): Provider name (e.g., "bitcoin", "ethereum", "binance")
+- `credentials` (required): Provider-specific credentials
+- `name`: Optional account name
+- `sync_transactions`: Whether to sync transactions (default: True)
+- `sync_nfts`: Whether to sync NFTs
+- `daily_sync`: Whether to enable daily automatic sync
+
 #### Sync an Account
 
 Trigger a refresh to fetch the latest data from the provider:

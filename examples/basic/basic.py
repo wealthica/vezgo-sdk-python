@@ -221,8 +221,50 @@ def main() -> None:
                 
             else:
                 print("No accounts found for this user.")
-                print("\nTo connect accounts, you'll need to use Vezgo Connect")
-                print("in your frontend. See the README for more information.")
+                print("\nTo connect accounts, you can either:")
+                print("  1. Use Vezgo Connect widget in your frontend")
+                print("  2. Use the Direct API (Enterprise only) - see example below")
+                
+                # ============================================================
+                # 3d. Add Account via Direct API (Enterprise only)
+                # ============================================================
+                print("\n--- Add Account Example (Direct API) ---")
+                print("Note: This requires Enterprise access to the Direct API.")
+                print("\nExample: Adding a Bitcoin wallet by address:")
+                print("""
+    account = user.accounts.add(
+        provider="bitcoin",
+        credentials={"address": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"},
+        name="My Bitcoin Wallet"
+    )
+""")
+                print("Example: Adding an exchange with API keys:")
+                print("""
+    account = user.accounts.add(
+        provider="binance",
+        credentials={
+            "apiKey": "your_api_key",
+            "apiSecret": "your_api_secret"
+        },
+        sync_transactions=True,
+        daily_sync=True
+    )
+""")
+                # Uncomment below to actually add an account (requires Direct API access)
+                # test_address = os.getenv("VEZGO_TEST_WALLET_ADDRESS")
+                # if test_address:
+                #     try:
+                #         print(f"\nAdding Bitcoin wallet: {test_address[:10]}...")
+                #         account = user.accounts.add(
+                #             provider="bitcoin",
+                #             credentials={"address": test_address},
+                #             name="Test Bitcoin Wallet"
+                #         )
+                #         print(f"✓ Account added: {account['id']}")
+                #         print(f"  Provider: {account['provider']['display_name']}")
+                #         print(f"  Status: {account.get('status', 'syncing')}")
+                #     except VezgoError as e:
+                #         print(f"✗ Error adding account: {e}")
                 
         except VezgoAuthenticationError as e:
             print(f"✗ Authentication error: {e}")

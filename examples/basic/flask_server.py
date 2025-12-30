@@ -65,6 +65,7 @@ HTML_TEMPLATE = """
             padding: 15px;
             border-radius: 4px;
             overflow-x: auto;
+            color: #333;
         }
         .btn {
             display: inline-block;
@@ -119,13 +120,38 @@ HTML_TEMPLATE = """
     </div>
     
     <div class="card">
+        <h2>4. Add Account (Direct API)</h2>
+        <p>Add a wallet or exchange account directly via API.</p>
+        <form id="addAccountForm">
+            <div style="margin-bottom: 10px;">
+                <input type="text" name="user_id" placeholder="User ID" required style="width: 150px;">
+                <input type="text" name="provider" placeholder="Provider (e.g., bitcoin, ethereum, binance)" required style="width: 280px;">
+            </div>
+            <div style="margin-bottom: 10px;">
+                <label style="display: block; margin-bottom: 5px; color: #666;">Credentials (JSON):</label>
+                <textarea name="credentials" rows="10" style="width: 450px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 12px;">{
+  "wallet": "",
+  "network": "",
+  "code": "",
+  "username": "",
+  "password": "",
+  "user_id": "",
+  "key": "",
+  "secret": ""
+}</textarea>
+            </div>
+            <button type="submit" class="btn" style="background: #9C27B0;">Add Account</button>
+        </form>
+    </div>
+    
+    <div class="card">
         <h2>API Response</h2>
         <pre id="response">Click a button above to see the API response...</pre>
     </div>
 
     <script>
         // Intercept form submissions and display JSON responses
-        document.querySelectorAll('form').forEach(form => {
+        document.querySelectorAll('form:not(#addAccountForm)').forEach(form => {
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const formData = new FormData(form);
@@ -143,6 +169,43 @@ HTML_TEMPLATE = """
                     document.getElementById('response').textContent = 'Error: ' + error.message;
                 }
             });
+        });
+        
+        // Handle Add Account form (sends JSON)
+        document.getElementById('addAccountForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            
+            // Parse credentials JSON
+            let credentials;
+            try {
+                credentials = JSON.parse(formData.get('credentials'));
+                // Remove empty string values from credentials
+                Object.keys(credentials).forEach(key => {
+                    if (credentials[key] === '') delete credentials[key];
+                });
+            } catch (err) {
+                document.getElementById('response').textContent = 'Error: Invalid JSON in credentials field';
+                return;
+            }
+            
+            const payload = {
+                user_id: formData.get('user_id'),
+                provider: formData.get('provider'),
+                credentials: credentials
+            };
+            
+            try {
+                const response = await fetch('/api/accounts', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                document.getElementById('response').textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                document.getElementById('response').textContent = 'Error: ' + error.message;
+            }
         });
         
         // Intercept link clicks
@@ -334,6 +397,68 @@ def sync_account(account_id):
         user = vezgo.login(user_id)
         account = user.accounts.sync(account_id)
         return jsonify({"success": True, "account": account})
+    except VezgoError as e:
+        return jsonify({"success": False, "error": str(e)}), 500
+
+
+@app.route("/api/accounts", methods=["POST"])
+def add_account():
+    """
+    Add a new account for a user (Direct API - Enterprise only).
+    
+    This endpoint allows adding accounts directly via the API without
+    using the Connect widget. Useful for wallet addresses and API key
+    based integrations.
+    
+    Request body (JSON):
+        - user_id: The user ID
+        - provider: Provider name (e.g., "bitcoin", "ethereum", "binance")
+        - credentials: Provider-specific credentials object
+        - name: Optional account name
+        - sync_transactions: Optional boolean to sync transactions
+        - sync_nfts: Optional boolean to sync NFTs
+        - daily_sync: Optional boolean to enable daily sync
+    
+    Example request for adding a Bitcoin wallet:
+        {
+            "user_id": "user_123",
+            "provider": "bitcoin",
+            "credentials": {"address": "bc1q..."},
+            "name": "My Bitcoin Wallet"
+        }
+    """
+    json_data = request.get_json(silent=True) or {}
+    
+    user_id = json_data.get("user_id")
+    provider = json_data.get("provider")
+    credentials = json_data.get("credentials")
+    name = json_data.get("name")
+    sync_transactions = json_data.get("sync_transactions")
+    sync_nfts = json_data.get("sync_nfts")
+    daily_sync = json_data.get("daily_sync")
+    
+    if not user_id:
+        return jsonify({"success": False, "error": "user_id is required"}), 400
+    if not provider:
+        return jsonify({"success": False, "error": "provider is required"}), 400
+    if not credentials:
+        return jsonify({"success": False, "error": "credentials is required"}), 400
+    
+    try:
+        user = vezgo.login(user_id)
+        account = user.accounts.add(
+            provider=provider,
+            credentials=credentials,
+            name=name,
+            sync_transactions=sync_transactions,
+            sync_nfts=sync_nfts,
+            daily_sync=daily_sync,
+        )
+        return jsonify({
+            "success": True,
+            "account": account,
+            "message": "Account added successfully. Initial sync in progress."
+        })
     except VezgoError as e:
         return jsonify({"success": False, "error": str(e)}), 500
 

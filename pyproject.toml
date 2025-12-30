@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "vezgo"
-version = "1.0.0"
+version = "1.0.1"
 description = "Official Vezgo Python SDK for Cryptocurrency Data API"
 readme = "README.md"
 license = "MIT"
