@@ -351,6 +351,53 @@ window.location.href = `${url}&token=${token}`;
 
 For full frontend integration, see the [JavaScript SDK](https://github.com/wealthica/vezgo-sdk-js).
 
+## Publishing to PyPI
+
+To release a new version of the SDK:
+
+### 1. Update Version
+
+Update the version number in `pyproject.toml`:
+
+```toml
+version = "X.Y.Z"
+```
+
+### 2. Update Changelog
+
+Add release notes to `CHANGELOG.md`.
+
+### 3. Commit and Tag
+
+```bash
+git add -A
+git commit -m "vX.Y.Z: Description of changes"
+git tag -a vX.Y.Z -m "Release vX.Y.Z"
+git push origin main --tags
+```
+
+### 4. Build the Package
+
+```bash
+# Clean previous builds
+rm -rf dist/ build/ src/*.egg-info
+
+# Build
+python3 -m build
+```
+
+### 5. Upload to PyPI
+
+```bash
+# Upload using twine (requires PyPI API token)
+python3 -m twine upload dist/* -u __token__ -p YOUR_PYPI_TOKEN
+```
+
+To get a PyPI API token:
+1. Go to https://pypi.org/manage/account/
+2. Create an API token with "Upload packages" scope
+3. Use `__token__` as username and the token as password
+
 ## Documentation
 
 - [Vezgo API Documentation](https://vezgo.com/docs)
