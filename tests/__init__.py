@@ -1,0 +1,2 @@
+"""Vezgo SDK Tests."""
+
