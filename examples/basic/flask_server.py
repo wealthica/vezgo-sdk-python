@@ -129,12 +129,13 @@ HTML_TEMPLATE = """
             form.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const formData = new FormData(form);
-                const url = form.action + (form.method === 'GET' ? '?' + new URLSearchParams(formData) : '');
+                const method = form.method.toUpperCase();
+                const url = form.action + (method === 'GET' ? '?' + new URLSearchParams(formData) : '');
                 
                 try {
                     const response = await fetch(url, {
-                        method: form.method,
-                        body: form.method === 'POST' ? formData : undefined
+                        method: method,
+                        body: method === 'POST' ? formData : undefined
                     });
                     const data = await response.json();
                     document.getElementById('response').textContent = JSON.stringify(data, null, 2);
@@ -211,7 +212,8 @@ def get_auth_token():
     This endpoint would be called by your frontend to get a token
     for Vezgo Connect.
     """
-    user_id = request.form.get("user_id") or request.json.get("user_id")
+    json_data = request.get_json(silent=True) or {}
+    user_id = request.form.get("user_id") or json_data.get("user_id")
     
     if not user_id:
         return jsonify({"success": False, "error": "user_id is required"}), 400
@@ -322,7 +324,8 @@ def get_history(account_id):
 @app.route("/api/accounts/<account_id>/sync", methods=["POST"])
 def sync_account(account_id):
     """Trigger a sync for an account."""
-    user_id = request.form.get("user_id") or request.json.get("user_id")
+    json_data = request.get_json(silent=True) or {}
+    user_id = request.form.get("user_id") or json_data.get("user_id")
     
     if not user_id:
         return jsonify({"success": False, "error": "user_id is required"}), 400
